@@ -1,19 +1,32 @@
-import express, { urlencoded } from 'express';
-import 'dotenv/config';
-import cors from 'cors';
-import { mainRouter } from './routes/main';
-import helmet from 'helmet';
+import express, { Request, Response, ErrorRequestHandler } from "express";
+import path from "path";
+import dotenv from "dotenv";
+import cors from "cors";
+import apiRoutes from "./routes/api";
+
+dotenv.config();
 
 const server = express();
-server.use(helmet());
+
 server.use(cors());
-server.use(urlencoded({ extended: true }));
-server.disable('x-powered-by');
-server.use(express.json());
 
-server.use(mainRouter);
+server.use(express.static(path.join(__dirname, "../public")));
+server.use(express.urlencoded({ extended: true }));
 
-const port = process.env.PORT || 3000;
-server.listen(port, () => {
-    console.log(`🚀 Servidor rodando em http://localhost:${port}`);
-})
+server.get("/ping", (req: Request, res: Response) => res.json({ pong: true }));
+
+server.use(apiRoutes);
+
+server.use((req: Request, res: Response) => {
+  res.status(404);
+  res.json({ error: "Endpoint não encontrado." });
+});
+
+const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
+  res.status(400); // Bad Request
+  console.log(err);
+  res.json({ error: "Ocorreu algum erro." });
+};
+server.use(errorHandler);
+
+server.listen(process.env.PORT);
